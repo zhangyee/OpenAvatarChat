@@ -1,0 +1,19 @@
+[project]
+name = "voxcpm"
+version = "0.1.0"
+requires-python = ">=3.10, <3.13"
+dependencies = [
+    "einops",
+    "inflect",
+    "addict",
+    "wetext",
+    "modelscope>=1.22.0",
+    "datasets>=3,<4",
+    "huggingface-hub",
+    "pydantic",
+    "tqdm",
+    "simplejson",
+    "sortedcontainers",
+    "soundfile",
+    "funasr",
+]

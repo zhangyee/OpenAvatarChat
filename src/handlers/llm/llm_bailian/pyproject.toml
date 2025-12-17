@@ -1,0 +1,7 @@
+[project]
+name = "llm_bailian"
+version = "0.1.0"
+requires-python = ">=3.10, <3.13"
+dependencies = [
+    "dashscope>=1.20.0",
+]
