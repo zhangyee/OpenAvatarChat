@@ -15,7 +15,7 @@
 	url = https://github.com/FunAudioLLM/CosyVoice.git
 [submodule "src/third_party/VoxCPM"]
 	path = src/handlers/tts/voxcpm/VoxCPM
-	url	= https://github.com/OpenBMB/VoxCPM.git
+	url = https://github.com/OpenBMB/VoxCPM.git
 [submodule "src/handlers/avatar/lam/LAM_Audio2Expression"]
 	path = src/handlers/avatar/lam/LAM_Audio2Expression
 	url = https://github.com/aigc3d/LAM_Audio2Expression.git
