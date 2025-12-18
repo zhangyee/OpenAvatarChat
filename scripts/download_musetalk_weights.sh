@@ -16,33 +16,33 @@ mkdir -p "$MODEL_DIR/face-parse-bisent"
 
 
 # Install required packages
-uv pip install -U "huggingface_hub[cli]"
+uv pip install -U "huggingface-hub"
 
 # Set HuggingFace mirror (for use in mainland China)
 export HF_ENDPOINT=https://hf-mirror.com
 
 # Download MuseTalk weights (TMElyralab/MuseTalk) - download to root directory, may contain subdirectories
 echo "Downloading MuseTalk main weights to $MUSETALK_ROOT_DIR..."
-uv run hf download TMElyralab/MuseTalk --local-dir "$MUSETALK_ROOT_DIR"
+hf download TMElyralab/MuseTalk --local-dir "$MUSETALK_ROOT_DIR"
 
 
 echo "Downloading SD VAE weights to $MODEL_DIR/sd-vae..."
-uv run hf download stabilityai/sd-vae-ft-mse --local-dir "$MODEL_DIR/sd-vae"
+hf download stabilityai/sd-vae-ft-mse --local-dir "$MODEL_DIR/sd-vae"
 
 
 echo "Downloading Whisper weights to $MUSETALK_ROOT_DIR/whisper..."
-uv run hf download openai/whisper-tiny --local-dir "$MUSETALK_ROOT_DIR/whisper" --include "config.json" "pytorch_model.bin" "preprocessor_config.json"
+hf download openai/whisper-tiny --local-dir "$MUSETALK_ROOT_DIR/whisper" --include "config.json" "pytorch_model.bin" "preprocessor_config.json"
 
 echo "Downloading DWPose weights to $MUSETALK_ROOT_DIR/dwpose..."
-uv run hf download yzd-v/DWPose --local-dir "$MUSETALK_ROOT_DIR/dwpose" --include "dw-ll_ucoco_384.pth"
+hf download yzd-v/DWPose --local-dir "$MUSETALK_ROOT_DIR/dwpose" --include "dw-ll_ucoco_384.pth"
 
 # Download SyncNet weights to syncnet subdirectory
 echo "Downloading SyncNet weights to $MUSETALK_ROOT_DIR/syncnet..."
-uv run hf download ByteDance/LatentSync --local-dir "$MUSETALK_ROOT_DIR/syncnet" --include "latentsync_syncnet.pt"
+hf download ByteDance/LatentSync --local-dir "$MUSETALK_ROOT_DIR/syncnet" --include "latentsync_syncnet.pt"
 
 
 echo "Downloading Face Parse Bisent weights to $MODEL_DIR/face-parse-bisent..."
-uv run hf download ManyOtherFunctions/face-parse-bisent --local-dir "$MODEL_DIR/face-parse-bisent" --include "79999_iter.pth" "resnet18-5c106cde.pth"
+hf download ManyOtherFunctions/face-parse-bisent --local-dir "$MODEL_DIR/face-parse-bisent" --include "79999_iter.pth" "resnet18-5c106cde.pth"
 
 echo "Downloading s3fd-619a316812 weights to $MUSETALK_ROOT_DIR/s3fd-619a316812..."
 git clone https://www.modelscope.cn/HaveAnApplePie/s3fd-619a316812.git $MUSETALK_ROOT_DIR/s3fd-619a316812
