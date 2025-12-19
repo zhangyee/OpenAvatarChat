@@ -13,15 +13,15 @@ from tqdm import tqdm
 project_root = os.getcwd()
 s3fd_model_path = os.path.join(project_root, "models", "musetalk", "s3fd-619a316812", "s3fd-619a316812.pth")
 
-from musetalk.utils.face_detection.detection.sfd import sfd_detector
-_original_sfd_init = sfd_detector.FaceDetector.__init__
+from musetalk.utils.face_detection.detection.sfd.sfd_detector import SFDDetector
+_original_sfd_init = SFDDetector.__init__
 
 def _patched_sfd_init(self, device, path_to_detector=None, verbose=False):
     if path_to_detector is None:
         path_to_detector = s3fd_model_path
     _original_sfd_init(self, device, path_to_detector=path_to_detector, verbose=verbose)
 
-sfd_detector.FaceDetector.__init__ = _patched_sfd_init
+SFDDetector.__init__ = _patched_sfd_init
 
 from musetalk.utils.face_detection import FaceAlignment, LandmarksType
 from mmpose.apis import inference_topdown, init_model
