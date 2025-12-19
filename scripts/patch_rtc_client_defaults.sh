@@ -1,38 +1,48 @@
 #!/bin/bash
 # 修改 rtc_client 默认设置：关闭摄像头、打开聊天框
+# 直接修改构建后的 dist 文件，无需重新构建
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TARGET_FILE="$PROJECT_ROOT/src/handlers/client/rtc_client/frontend/src/store/index.ts"
+DIST_DIR="$PROJECT_ROOT/src/handlers/client/rtc_client/frontend/dist/assets"
 
-if [ ! -f "$TARGET_FILE" ]; then
-    echo "Error: File not found: $TARGET_FILE"
+INDEX_JS="$DIST_DIR/index.js"
+INDEX_LEGACY_JS="$DIST_DIR/index-legacy.js"
+
+# 检查文件是否存在
+if [ ! -f "$INDEX_JS" ]; then
+    echo "Error: File not found: $INDEX_JS"
+    exit 1
+fi
+
+if [ ! -f "$INDEX_LEGACY_JS" ]; then
+    echo "Error: File not found: $INDEX_LEGACY_JS"
     exit 1
 fi
 
 # 备份
-BACKUP_FILE="${TARGET_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
-cp "$TARGET_FILE" "$BACKUP_FILE"
-echo "Backup created: $BACKUP_FILE"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+cp "$INDEX_JS" "${INDEX_JS}.backup.${TIMESTAMP}"
+cp "$INDEX_LEGACY_JS" "${INDEX_LEGACY_JS}.backup.${TIMESTAMP}"
+echo "Backup created with timestamp: ${TIMESTAMP}"
 
-# 修改1: 第89行 cameraOff: false -> true
-sed -i '89s/cameraOff: false,/cameraOff: true,/' "$TARGET_FILE"
+echo "Patching index.js..."
+sed -i '66028s/cameraOff: !1,/cameraOff: !0,/' "$INDEX_JS"
+sed -i '66033s/showChatRecords: !1,/showChatRecords: !0,/' "$INDEX_JS"
+sed -i '66046s/(this\.cameraOff = !1),/(this.cameraOff = !0),/' "$INDEX_JS"
 
-# 修改2: 第94行 showChatRecords: false -> true
-sed -i '94s/showChatRecords: false,/showChatRecords: true,/' "$TARGET_FILE"
+echo "Patching index-legacy.js..."
+sed -i '85653s/cameraOff: !1,/cameraOff: !0,/' "$INDEX_LEGACY_JS"
+sed -i '85658s/showChatRecords: !1,/showChatRecords: !0,/' "$INDEX_LEGACY_JS"
+sed -i '85682s/(e\.cameraOff = !1),/(e.cameraOff = !0),/' "$INDEX_LEGACY_JS"
 
-# 修改3: 第110行 注释掉 accessDevice() 中的 this.cameraOff = false
-sed -i '110s/^        this\.cameraOff = false$/        \/\/ this.cameraOff = false/' "$TARGET_FILE"
-
+echo ""
 echo "Patching completed successfully!"
 echo ""
 echo "Changes made:"
-echo "  Line 89:  cameraOff: false -> true"
-echo "  Line 94:  showChatRecords: false -> true"
-echo "  Line 110: this.cameraOff = false (commented out)"
+echo "  index.js (L66028,66033,66046): cameraOff/showChatRecords !1->!0"
+echo "  index-legacy.js (L85653,85658,85682): cameraOff/showChatRecords !1->!0"
 echo ""
-echo "Next steps:"
-echo "  cd src/handlers/client/rtc_client/frontend"
-echo "  npm run build"
+echo "No build required! Just restart the server."
