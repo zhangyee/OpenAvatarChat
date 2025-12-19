@@ -1,5 +1,4 @@
 import sys
-from musetalk.utils.face_detection import FaceAlignment,LandmarksType
 from os import listdir, path
 import subprocess
 import numpy as np
@@ -7,10 +6,26 @@ import cv2
 import pickle
 import os
 import json
-from mmpose.apis import inference_topdown, init_model
-from mmpose.structures import merge_data_samples
 import torch
 from tqdm import tqdm
+
+# Patch SFDDetector to use local model path before importing FaceAlignment
+project_root = os.getcwd()
+s3fd_model_path = os.path.join(project_root, "models", "musetalk", "s3fd-619a316812", "s3fd-619a316812.pth")
+
+from musetalk.utils.face_detection.detection.sfd import sfd_detector
+_original_sfd_init = sfd_detector.FaceDetector.__init__
+
+def _patched_sfd_init(self, device, path_to_detector=None, verbose=False):
+    if path_to_detector is None:
+        path_to_detector = s3fd_model_path
+    _original_sfd_init(self, device, path_to_detector=path_to_detector, verbose=verbose)
+
+sfd_detector.FaceDetector.__init__ = _patched_sfd_init
+
+from musetalk.utils.face_detection import FaceAlignment, LandmarksType
+from mmpose.apis import inference_topdown, init_model
+from mmpose.structures import merge_data_samples
 
 # initialize the mmpose model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
