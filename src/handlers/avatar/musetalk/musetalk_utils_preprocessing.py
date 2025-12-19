@@ -10,10 +10,17 @@ import torch
 from tqdm import tqdm
 
 # Patch SFDDetector to use local model path before importing FaceAlignment
+# Note: musetalk/utils/__init__.py adds musetalk/utils/ to sys.path,
+# so api.py imports via 'face_detection.detection.sfd' (absolute path).
+# We must patch through the same path to affect the correct module.
 project_root = os.getcwd()
 s3fd_model_path = os.path.join(project_root, "models", "musetalk", "s3fd-619a316812", "s3fd-619a316812.pth")
 
-from musetalk.utils.face_detection.detection.sfd.sfd_detector import SFDDetector
+# First import musetalk.utils to ensure sys.path is modified
+import musetalk.utils  # noqa: F401 - This adds musetalk/utils/ to sys.path
+
+# Now import SFDDetector through the absolute path that api.py uses
+from face_detection.detection.sfd.sfd_detector import SFDDetector
 _original_sfd_init = SFDDetector.__init__
 
 def _patched_sfd_init(self, device, path_to_detector=None, verbose=False):
