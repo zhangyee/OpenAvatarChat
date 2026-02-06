@@ -16,4 +16,5 @@ dependencies = [
     "sortedcontainers",
     "soundfile",
     "funasr",
+    "soxr",
 ]

@@ -10,6 +10,7 @@ import librosa
 from loguru import logger
 import numpy as np
 import soundfile as sf
+import soxr
 
 from engine_utils.directory_info import DirectoryInfo
 
@@ -122,7 +123,18 @@ class TTSVoxCPMProcessor(spawn_context.Process):
                 if use_streaming:
                     # Use streaming generation
                     logger.debug(f'streaming generation for text: {input_text}')
-                    chunks = []
+
+                    # Create streaming resampler for this task (if needed)
+                    # soxr.ResampleStream maintains internal state to avoid clicks at chunk boundaries
+                    stream_resampler = None
+                    if self.sample_rate != 16000:
+                        stream_resampler = soxr.ResampleStream(
+                            16000,              # VoxCPM output sample rate
+                            self.sample_rate,   # Target sample rate
+                            1,                  # Mono channel
+                            dtype='float32'
+                        )
+
                     for chunk in self.model.generate_streaming(
                         text=input_text,
                         prompt_wav_path=self.ref_audio_path,
@@ -136,22 +148,53 @@ class TTSVoxCPMProcessor(spawn_context.Process):
                         retry_badcase_max_times=self.retry_badcase_max_times,
                         retry_badcase_ratio_threshold=self.retry_badcase_ratio_threshold,
                     ):
-                        # Resample if needed
-                        if self.sample_rate != 16000:
-                            chunk = librosa.resample(chunk, orig_sr=16000, target_sr=self.sample_rate)
+                        if stream_resampler is not None:
+                            # Stream resample each chunk immediately (no batching)
+                            resampled = stream_resampler.resample_chunk(chunk, last=False)
+                            if len(resampled) == 0:
+                                continue  # soxr internal buffering, data will come in next chunk
 
-                        chunk = chunk[np.newaxis, ...]  # Add channel dimension
+                            resampled = resampled[np.newaxis, ...]  # Add channel dimension
 
-                        if self.dump_audio:
-                            self.audio_dump_file.write(chunk.tobytes())
+                            if self.dump_audio:
+                                self.audio_dump_file.write(resampled.tobytes())
 
-                        output = {
-                            'key': key,
-                            'tts_speech': chunk,
-                            'session_id': session_id
-                        }
-                        self.output_queue.put(output)
-                        logger.debug(f'sent audio chunk: shape={chunk.shape}')
+                            output = {
+                                'key': key,
+                                'tts_speech': resampled,
+                                'session_id': session_id
+                            }
+                            self.output_queue.put(output)
+                            logger.debug(f'sent audio chunk: shape={resampled.shape}')
+                        else:
+                            # No resampling needed, output directly
+                            chunk = chunk[np.newaxis, ...]  # Add channel dimension
+
+                            if self.dump_audio:
+                                self.audio_dump_file.write(chunk.tobytes())
+
+                            output = {
+                                'key': key,
+                                'tts_speech': chunk,
+                                'session_id': session_id
+                            }
+                            self.output_queue.put(output)
+                            logger.debug(f'sent audio chunk: shape={chunk.shape}')
+
+                    # Flush resampler to get any remaining samples from internal buffer
+                    if stream_resampler is not None:
+                        final_chunk = stream_resampler.resample_chunk(np.array([], dtype='float32'), last=True)
+                        if len(final_chunk) > 0:
+                            final_chunk = final_chunk[np.newaxis, ...]
+                            if self.dump_audio:
+                                self.audio_dump_file.write(final_chunk.tobytes())
+                            output = {
+                                'key': key,
+                                'tts_speech': final_chunk,
+                                'session_id': session_id
+                            }
+                            self.output_queue.put(output)
+                            logger.debug(f'sent final resampler flush: shape={final_chunk.shape}')
                 else:
                     # Non-streaming generation
                     logger.debug(f'non-streaming generation for text: {input_text}')
